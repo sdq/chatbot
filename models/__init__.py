@@ -31,5 +31,6 @@
 from .encoder import EncoderRNN
 from .decoder import LuongAttnDecoderRNN
 from .attention import Attn
+from .search import GreedySearchDecoder
 
-__all__ = ["EncoderRNN", "LuongAttnDecoderRNN", "Attn"]
+__all__ = ["EncoderRNN", "LuongAttnDecoderRNN", "Attn", "GreedySearchDecoder"]

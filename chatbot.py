@@ -48,7 +48,7 @@ import itertools
 import math
 from vocab import Voc
 from process import extractSentencePairs, loadConversations, loadLines, loadPrepareData, trimRareWords
-from models import EncoderRNN, LuongAttnDecoderRNN
+from models import EncoderRNN, LuongAttnDecoderRNN, GreedySearchDecoder
 from loss import maskNLLLoss
 from train import trainIters
 from evaluate import evaluateInput
@@ -333,7 +333,7 @@ encoder.eval()
 decoder.eval()
 
 # Initialize search module
-searcher = GreedySearchDecoder(encoder, decoder)
+searcher = GreedySearchDecoder(encoder, decoder, device)
 
 # Begin chatting (uncomment and run the following line to begin)
-evaluateInput(encoder, decoder, searcher, voc, MAX_LENGTH)
+evaluateInput(encoder, decoder, searcher, voc, MAX_LENGTH, device)

@@ -1,8 +1,10 @@
 import torch
 import torch.nn as nn
+import os
 import random
 import itertools
 from loss import maskNLLLoss
+from utils import zeroPadding, binaryMatrix, indexesFromSentence
 
 # Default word tokens
 PAD_token = 0  # Used for padding short sentences
@@ -34,15 +36,6 @@ EOS_token = 2  # End-of-sentence token
 # *(max_length, batch_size)*, where sentences shorter than the
 # *max_length* are zero padded after an *EOS_token*.
 #
-# If we simply convert our English sentences to tensors by converting
-# words to their indexes(\ ``indexesFromSentence``) and zero-pad, our
-# tensor would have shape *(batch_size, max_length)* and indexing the
-# first dimension would return a full sequence across all time-steps.
-# However, we need to be able to index our batch along time, and across
-# all sequences in the batch. Therefore, we transpose our input batch
-# shape to *(max_length, batch_size)*, so that indexing across the first
-# dimension returns a time step across all sentences in the batch. We
-# handle this transpose implicitly in the ``zeroPadding`` function.
 #
 # .. figure:: /_static/img/chatbot/seq2seq_batches.png
 #    :align: center
@@ -63,29 +56,11 @@ EOS_token = 2  # End-of-sentence token
 # and target tensors using the aforementioned functions.
 #
 
-def indexesFromSentence(voc, sentence):
-    return [voc.word2index[word] for word in sentence.split(' ')] + [EOS_token]
-
-
-def zeroPadding(l, fillvalue=PAD_token):
-    return list(itertools.zip_longest(*l, fillvalue=fillvalue))
-
-def binaryMatrix(l, value=PAD_token):
-    m = []
-    for i, seq in enumerate(l):
-        m.append([])
-        for token in seq:
-            if token == PAD_token:
-                m[i].append(0)
-            else:
-                m[i].append(1)
-    return m
-
 # Returns padded input sequence tensor and lengths
 def inputVar(l, voc):
     indexes_batch = [indexesFromSentence(voc, sentence) for sentence in l]
     lengths = torch.tensor([len(indexes) for indexes in indexes_batch])
-    padList = zeroPadding(indexes_batch)
+    padList = zeroPadding(indexes_batch, PAD_token)
     padVar = torch.LongTensor(padList)
     return padVar, lengths
 
@@ -93,8 +68,8 @@ def inputVar(l, voc):
 def outputVar(l, voc):
     indexes_batch = [indexesFromSentence(voc, sentence) for sentence in l]
     max_target_len = max([len(indexes) for indexes in indexes_batch])
-    padList = zeroPadding(indexes_batch)
-    mask = binaryMatrix(padList)
+    padList = zeroPadding(indexes_batch, PAD_token)
+    mask = binaryMatrix(padList, PAD_token)
     mask = torch.BoolTensor(mask)
     padVar = torch.LongTensor(padList)
     return padVar, mask, max_target_len
@@ -298,7 +273,7 @@ def trainIters(model_name, voc, pairs, encoder, decoder, encoder_optimizer, deco
 
         # Save checkpoint
         if (iteration % save_every == 0):
-            directory = os.path.join(save_dir, model_name, corpus_name, '{}-{}_{}'.format(encoder_n_layers, decoder_n_layers, hidden_size))
+            directory = os.path.join(save_dir, model_name, corpus_name, '{}-{}'.format(encoder_n_layers, decoder_n_layers))
             if not os.path.exists(directory):
                 os.makedirs(directory)
             torch.save({

@@ -29,8 +29,10 @@
 #
 
 import torch
+from process import normalizeString
+from utils import indexesFromSentence
 
-def evaluate(encoder, decoder, searcher, voc, sentence, max_length):
+def evaluate(encoder, decoder, searcher, voc, sentence, max_length, device):
     ### Format input sentence as a batch
     # words -> indexes
     indexes_batch = [indexesFromSentence(voc, sentence)]
@@ -40,7 +42,8 @@ def evaluate(encoder, decoder, searcher, voc, sentence, max_length):
     input_batch = torch.LongTensor(indexes_batch).transpose(0, 1)
     # Use appropriate device
     input_batch = input_batch.to(device)
-    lengths = lengths.to(device)
+    # lengths = lengths.to(device)
+    lengths = torch.as_tensor(lengths, dtype=torch.int64, device='cpu')
     # Decode sentence with searcher
     tokens, scores = searcher(input_batch, lengths, max_length)
     # indexes -> words
@@ -48,7 +51,7 @@ def evaluate(encoder, decoder, searcher, voc, sentence, max_length):
     return decoded_words
 
 
-def evaluateInput(encoder, decoder, searcher, voc, max_length):
+def evaluateInput(encoder, decoder, searcher, voc, max_length, device):
     input_sentence = ''
     while(1):
         try:
@@ -59,7 +62,7 @@ def evaluateInput(encoder, decoder, searcher, voc, max_length):
             # Normalize sentence
             input_sentence = normalizeString(input_sentence)
             # Evaluate sentence
-            output_words = evaluate(encoder, decoder, searcher, voc, input_sentence, max_length)
+            output_words = evaluate(encoder, decoder, searcher, voc, input_sentence, max_length, device)
             # Format and print response sentence
             output_words[:] = [x for x in output_words if not (x == 'EOS' or x == 'PAD')]
             print('Bot:', ' '.join(output_words))
